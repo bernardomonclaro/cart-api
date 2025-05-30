@@ -2,12 +2,12 @@ class CleanupAbandonedCartsJob < ApplicationJob
   queue_as :default
 
   def perform
-    Cart.where("last_interaction_at < ? AND abandoned = ?", 3.hours.ago, false).update_all(abandoned: true)
-    Cart.where("abandoned = ? AND updated_at < ?", true, 7.days.ago).destroy_all
-  end
-end
+    # Marcar carrinhos como abandonados se inativos há mais de 3 horas e ainda não marcados
+    Cart.where(abandoned_at: nil)
+        .where("updated_at < ?", 3.hours.ago)
+        .update_all(abandoned_at: Time.current)
 
-# config/schedule.rb (se usar sempre)
-every 1.hour do
-  runner "CleanupAbandonedCartsJob.perform_later"
+    # Remover carrinhos que estão abandonados há mais de 7 dias
+    Cart.where("abandoned_at < ?", 7.days.ago).destroy_all
+  end
 end
