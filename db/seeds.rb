@@ -9,81 +9,12 @@
 #   end
 
 
-# # Limpa dados anteriores
+# clears previous data
 # CartItem.delete_all
 # Cart.delete_all
 # Product.delete_all
 
-# # Cria produtos
-# products = Product.create!([
-#   # Smartphones
-#   { name: 'Samsung Galaxy S24 Ultra', price: 12999.99 },
-#   { name: 'iPhone 15 Pro Max', price: 14999.99 },
-#   { name: 'Xiamo Mi 27 Pro Plus Master Ultra', price: 999.99 },
-#   { name: 'Motorola Edge 40 Neo', price: 1899.99 },
-#   { name: 'Realme GT Neo 3', price: 2199.99 },
-#   { name: 'Google Pixel 8 Pro', price: 8999.99 },
-#   { name: 'Asus ROG Phone 7', price: 6499.99 },
-
-#   # Laptops
-#   { name: 'MacBook Pro M3 Max', price: 21999.99 },
-#   { name: 'Dell XPS 15', price: 12999.99 },
-#   { name: 'Lenovo Legion 5i', price: 8499.99 },
-#   { name: 'Acer Nitro 5', price: 5299.99 },
-#   { name: 'HP Envy x360', price: 6799.99 },
-
-#   # Fones de ouvido
-#   { name: 'Apple AirPods Pro 2', price: 1799.99 },
-#   { name: 'Sony WH-1000XM5', price: 2399.99 },
-#   { name: 'JBL Tune 760NC', price: 699.99 },
-#   { name: 'Samsung Galaxy Buds2 Pro', price: 999.99 },
-
-#   # Smartwatches
-#   { name: 'Apple Watch Ultra 2', price: 5599.99 },
-#   { name: 'Samsung Galaxy Watch 6', price: 1599.99 },
-#   { name: 'Amazfit GTR 4', price: 899.99 },
-#   { name: 'Huawei Watch GT 3', price: 1299.99 },
-
-#   # Periféricos
-#   { name: 'Logitech MX Master 3S', price: 599.99 },
-#   { name: 'Razer Huntsman Mini', price: 799.99 },
-#   { name: 'HyperX Cloud II', price: 499.99 },
-#   { name: 'Corsair K70 RGB', price: 899.99 },
-#   { name: 'Monitor LG UltraGear 27"', price: 1899.99 },
-
-#   # Eletrodomésticos
-#   { name: 'Air Fryer Mondial 5L', price: 429.99 },
-#   { name: 'Cafeteira Nespresso Vertuo', price: 799.99 },
-#   { name: 'Geladeira Brastemp Inverse 443L', price: 4299.99 },
-#   { name: 'Micro-ondas Electrolux 20L', price: 499.99 },
-#   { name: 'Aspirador de Pó Robo Xiaomi', price: 1499.99 },
-
-#   # Livros
-#   { name: 'Clean Code - Robert C. Martin', price: 129.99 },
-#   { name: 'O Programador Pragmático', price: 109.99 },
-#   { name: 'Sapiens - Yuval Harari', price: 69.99 },
-#   { name: '1984 - George Orwell', price: 39.99 },
-#   { name: 'A Revolução dos Bichos', price: 29.99 },
-
-#   # Brinquedos
-#   { name: 'LEGO Star Wars X-Wing', price: 799.99 },
-#   { name: 'Boneco Homem-Aranha Marvel Legends', price: 119.99 },
-#   { name: 'Jogo de Tabuleiro Catan', price: 199.99 },
-#   { name: 'Hot Wheels Mega Pista Looping', price: 229.99 },
-#   { name: 'Quebra-cabeça 2000 peças', price: 89.99 },
-
-#   # Outros
-#   { name: 'Kindle Paperwhite 11ª Geração', price: 699.99 },
-#   { name: 'Google Chromecast com Google TV', price: 399.99 },
-#   { name: 'Fire TV Stick 4K Max', price: 349.99 },
-#   { name: 'Smart Lamp Xiaomi', price: 149.99 },
-#   { name: 'Controle Xbox Series', price: 459.99 },
-#   { name: 'Caixa de som JBL Flip 6', price: 599.99 },
-#   { name: 'Echo Dot 5ª geração', price: 349.99 }
-# ])
-
-
-# puts "Criados #{products.count} produtos"
+# create sample products
 products = Product.create!([
   { name: 'Nokia XR21', price: 2799.99 },
   { name: 'Sony Xperia 1 V', price: 7999.99 },
@@ -129,7 +60,7 @@ products = Product.create!([
   { name: 'Vivo T2 5G', price: 1499.99 }
 ])
 
-# Carrinho ativo (atualizado agora)
+# active cart
 active_cart = Cart.create!(last_interaction_at: Time.current, updated_at: Time.current)
 active_cart.cart_items.create!(
   product: products[0],
@@ -139,7 +70,7 @@ active_cart.cart_items.create!(
 
 active_cart.total_price = products[0].price
 active_cart.save!
-# Carrinho abandonado há 4h (sem interação há mais de 3h, será marcado como abandonado)
+# cart abandoned 4 hours ago (no interaction for more than 3 hours, will be marked as abandoned)
 abandoned_cart = Cart.create!(
   last_interaction_at: 4.hours.ago,
   updated_at: 4.hours.ago
@@ -152,7 +83,7 @@ abandoned_cart.cart_items.create!(
 
 abandoned_cart.update_total_price!
 
-# Carrinho abandonado há mais de 7 dias (será destruído pelo job)
+# cart abandoned for more than 7 days (will be destroyed by the job)
 old_cart = Cart.create!(
   last_interaction_at: 8.days.ago,
   updated_at: 8.days.ago,
