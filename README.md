@@ -1,218 +1,183 @@
-# Desafio técnico e-commerce
+# Carrinho de Compras API
 
-## Nossas expectativas
+Este projeto é uma API de carrinho de compras desenvolvida com **Ruby on Rails**
 
-A equipe de engenharia da RD Station tem alguns princípios nos quais baseamos nosso trabalho diário. Um deles é: projete seu código para ser mais fácil de entender, não mais fácil de escrever.
+---
 
-Portanto, para nós, é mais importante um código de fácil leitura do que um que utilize recursos complexos e/ou desnecessários.
+## Funcionalidades
 
-O que gostaríamos de ver:
+- Adicionar produtos ao carrinho
+- Atualizar a quantidade de produtos
+- Remover produtos
+- Listar produtos do carrinho
+- Cálculo de preço total automático
 
-- O código deve ser fácil de ler. Clean Code pode te ajudar.
-- Notas gerais e informações sobre a versão da linguagem e outras informações importantes para executar seu código.
-- Código que se preocupa com a performance (complexidade de algoritmo).
-- O seu código deve cobrir todos os casos de uso presentes no README, mesmo que não haja um teste implementado para tal.
-- A adição de novos testes é sempre bem-vinda.
-- Você deve enviar para nós o link do repositório público com a aplicação desenvolvida (GitHub, BitBucket, etc.).
+---
 
-## O Desafio - Carrinho de compras
-O desafio consiste em uma API para gerenciamento do um carrinho de compras de e-commerce.
+## Estrutura do Projeto
 
-Você deve desenvolver utilizando a linguagem Ruby e framework Rails, uma API Rest que terá 3 endpoins que deverão implementar as seguintes funcionalidades:
+### Controllers
 
-### 1. Registrar um produto no carrinho
-Criar um endpoint para inserção de produtos no carrinho.
+- `CartsController`: expõe endpoints REST para manipular o carrinho de compras (`list_products`, `add_product`, `update_quantity`, `remove_product`).
+- Toda a lógica de negócio foi delegada para services, mantendo o controller enxuto.
 
-Se não existir um carrinho para a sessão, criar o carrinho e salvar o ID do carrinho na sessão.
+### Models
 
-Adicionar o produto no carrinho e devolver o payload com a lista de produtos do carrinho atual.
+- `Cart`: representa o carrinho em si.
+- `Product`: representa os produtos disponíveis.
+- `CartItem`: representa a associação entre um produto e um carrinho, com quantidade e preço unitário.
 
+### Services
 
-ROTA: `/cart`
-Payload:
-```js
-{
-  "product_id": 345, // id do produto sendo adicionado
-  "quantity": 2, // quantidade de produto a ser adicionado
-}
+Organizam regras de negócio de forma coesa:
+
+- `AddProductToCartService`: adiciona ou atualiza um produto no carrinho.
+- `UpdateCartItemQuantityService`: atualiza a quantidade de um item no carrinho.
+- `RemoveProductFromCartService`: remove um produto do carrinho.
+
+### Serializers
+
+- `CartSerializer`: encapsula a resposta JSON do carrinho, formatando produtos e o `total_price`.
+
+## Job de Carrinhos Abandonados (`MarkCartAsAbandonedJob`)
+
+Este job automatiza o gerenciamento de carrinhos abandonados na aplicação.
+
+### O que ele faz?
+
+O `MarkCartAsAbandonedJob` executa duas tarefas principais:
+
+1. **Marca carrinhos como abandonados**  
+   Se um carrinho **não tiver sido atualizado nas últimas 3 horas**, ele será marcado como abandonado (`abandoned_at`).
+
+2. **Remove carrinhos abandonados há mais de 7 dias**  
+   Para evitar acúmulo no banco de dados, carrinhos que já estão marcados como abandonados **há mais de 7 dias** são removidos automaticamente.
+
+### Execução automática com Sidekiq Scheduler
+
+O job é executado automaticamente **de hora em hora**, graças à integração com a gem [`sidekiq-scheduler`](https://github.com/sidekiq-scheduler/sidekiq-scheduler).
+
+**Agendamento configurado em `config/sidekiq.yml`:**
+
+```yaml
+:schedule:
+  mark_cart_as_abandoned_job:
+    cron: "0 * * * *" # roda de hora em hora
+    class: "MarkCartAsAbandonedJob"
+    queue: default
 ```
 
-Response
-```js
-{
-  "id": 789, // id do carrinho
-  "products": [
-    {
-      "id": 645,
-      "name": "Nome do produto",
-      "quantity": 2,
-      "unit_price": 1.99, // valor unitário do produto
-      "total_price": 3.98, // valor total do produto
-    },
-    {
-      "id": 646,
-      "name": "Nome do produto 2",
-      "quantity": 2,
-      "unit_price": 1.99,
-      "total_price": 3.98,
-    },
-  ],
-  "total_price": 7.96 // valor total no carrinho
-}
+### Configuração do Sidekiq
+
+Em `config/initializers/sidekiq.rb`:
+
+```ruby
+require 'sidekiq/scheduler'
+
+Sidekiq.configure_server do |config|
+  config.on(:startup) do
+    Sidekiq::Scheduler.reload_schedule!
+  end
+end
 ```
 
-### 2. Listar itens do carrinho atual
-Criar um endpoint para listar os produtos no carrinho atual.
+### Execução manual (opcional)
 
-ROTA: `/cart`
+Você também pode executar o job manualmente pelo console Rails:
 
-Response:
-```js
-{
-  "id": 789, // id do carrinho
-  "products": [
-    {
-      "id": 645,
-      "name": "Nome do produto",
-      "quantity": 2,
-      "unit_price": 1.99, // valor unitário do produto
-      "total_price": 3.98, // valor total do produto
-    },
-    {
-      "id": 646,
-      "name": "Nome do produto 2",
-      "quantity": 2,
-      "unit_price": 1.99,
-      "total_price": 3.98,
-    },
-  ],
-  "total_price": 7.96 // valor total no carrinho
-}
+```ruby
+MarkCartAsAbandonedJob.perform_now
 ```
 
-### 3. Alterar a quantidade de produtos no carrinho 
-Um carrinho pode ter _N_ produtos, se o produto já existir no carrinho, apenas a quantidade dele deve ser alterada
+Ou enfileirar com Sidekiq:
 
-ROTA: `/cart/add_item`
-
-Payload
-```json
-{
-  "product_id": 1230,
-  "quantity": 1
-}
-```
-Response:
-```json
-{
-  "id": 1,
-  "products": [
-    {
-      "id": 1230,
-      "name": "Nome do produto X",
-      "quantity": 2, // considerando que esse produto já estava no carrinho
-      "unit_price": 7.00, 
-      "total_price": 14.00, 
-    },
-    {
-      "id": 01020,
-      "name": "Nome do produto Y",
-      "quantity": 1,
-      "unit_price": 9.90, 
-      "total_price": 9.90, 
-    },
-  ],
-  "total_price": 23.9
-}
+```ruby
+MarkCartAsAbandonedJob.perform_async
 ```
 
-### 3. Remover um produto do carrinho 
+## Endpoints
 
-Criar um endpoint para excluir um produto do do carrinho. 
+| Verbo HTTP | Rota                 | Ação                                 |
+|------------|----------------------|--------------------------------------|
+| GET        | `/cart/list_products` | Lista produtos no carrinho           |
+| POST       | `/cart/add_product`   | Adiciona produto ao carrinho         |
+| PATCH      | `/cart/update_quantity` | Atualiza a quantidade de um item    |
+| DELETE     | `/cart/remove_product` | Remove um produto do carrinho       |
 
-ROTA: `/cart/:product_id`
+---
 
+## Testes
 
-#### Detalhes adicionais:
+Foram utilizados `RSpec` e `FactoryBot`.
 
-- Verifique se o produto existe no carrinho antes de tentar removê-lo.
-- Se o produto não estiver no carrinho, retorne uma mensagem de erro apropriada.
-- Após remover o produto, retorne o payload com a lista atualizada de produtos no carrinho.
-- Certifique-se de que o endpoint lida corretamente com casos em que o carrinho está vazio após a remoção do produto.
+### Factories
 
-### 5. Excluir carrinhos abandonados
-Um carrinho é considerado abandonado quando estiver sem interação (adição ou remoção de produtos) há mais de 3 horas.
+- `product`, `cart`, `cart_item`: usados para gerar dados consistentes nos testes.
 
-- Quando este cenário ocorrer, o carrinho deve ser marcado como abandonado.
-- Se o carrinho estiver abandonado há mais de 7 dias, remover o carrinho.
-- Utilize um Job para gerenciar (marcar como abandonado e remover) carrinhos sem interação.
-- Configure a aplicação para executar este Job nos períodos especificados acima.
+### Exemplos de testes cobertos
 
-### Detalhes adicionais:
-- O Job deve ser executado regularmente para verificar e marcar carrinhos como abandonados após 3 horas de inatividade.
-- O Job também deve verificar periodicamente e excluir carrinhos que foram marcados como abandonados por mais de 7 dias.
+- Comportamento do carrinho em todos os endpoints
+- Validação de serviços isolados
+- Models
+- Routes
+- Job
 
-### Como resolver
+Para rodar os testes:
 
-#### Implementação
-Você deve usar como base o código disponível nesse repositório e expandi-lo para que atenda as funcionalidade descritas acima.
-
-Há trechos parcialmente implementados e também sugestões de locais para algumas das funcionalidades sinalizados com um `# TODO`. Você pode segui-los ou fazer da maneira que julgar ser a melhor a ser feita, desde que atenda os contratos de API e funcionalidades descritas.
-
-#### Testes
-Existem testes pendentes, eles estão marcados como <span style="color:green;">Pending</span>, e devem ser implementados para garantir a cobertura dos trechos de código implementados por você.
-Alguns testes já estão passando e outros estão com erro. Com a sua implementação os testes com erro devem passar a funcionar. 
-A adição de novos testes é sempre bem-vinda, mas sem alterar os já implementados.
-
-
-### O que esperamos
-- Implementação dos testes faltantes e de novos testes para os métodos/serviços/entidades criados
-- Construção das 4 rotas solicitadas
-- Implementação de um job para controle dos carrinhos abandonados
-
-
-### Itens adicionais / Legais de ter
-- Utilização de factory na construção dos testes
-- Desenvolvimento do docker-compose / dockerização da app
-
-A aplicação já possui um Dockerfile, que define como a aplicação deve ser configurada dentro de um contêiner Docker. No entanto, para completar a dockerização da aplicação, é necessário criar um arquivo `docker-compose.yml`. O arquivo irá definir como os vários serviços da aplicação (por exemplo, aplicação web, banco de dados, etc.) interagem e se comunicam.
-
-- Adicione tratamento de erros para situações excepcionais válidas, por exemplo: garantir que um produto não possa ter quantidade negativa. 
-
-- Se desejar você pode adicionar a configuração faltante no arquivo `docker-compose.yml` e garantir que a aplicação rode de forma correta utilizando Docker. 
-
-## Informações técnicas
-
-### Dependências
-- ruby 3.3.1
-- rails 7.1.3.2
-- postgres 16
-- redis 7.0.15
-
-### Como executar o projeto
-
-## Executando a app sem o docker
-Dado que todas as as ferramentas estão instaladas e configuradas:
-
-Instalar as dependências do:
-```bash
-bundle install
-```
-
-Executar o sidekiq:
-```bash
-bundle exec sidekiq
-```
-
-Executar projeto:
-```bash
-bundle exec rails server
-```
-
-Executar os testes:
 ```bash
 bundle exec rspec
 ```
 
-### Como enviar seu projeto
-Salve seu código em um versionador de código (GitHub, GitLab, Bitbucket) e nos envie o link publico. Se achar necessário, informe no README as instruções para execução ou qualquer outra informação relevante para correção/entendimento da sua solução.
+---
+
+## Rodando o Projeto Localmente
+
+1. Instale as dependências:
+
+```bash
+bundle install
+```
+
+2. Configure o banco:
+
+```bash
+rails db:create db:migrate db:seed
+```
+
+3. Executar o sidekiq:
+```bash
+bundle exec sidekiq
+```
+
+4. Inicie o servidor:
+
+```bash
+rails server
+```
+
+A aplicação estará disponível em [http://localhost:3000](http://localhost:3000).
+
+Criei uma collection no postman para testar os endpoints: 
+
+https://universal-sunset-274257.postman.co/workspace/cart-api~525f421c-53d2-4059-a08d-cb976536373e/collection/19576839-3f579059-c668-4b11-a4e4-18c2943d3478?action=share&creator=19576839
+
+---
+
+## Considerações
+
+Este projeto foi estruturado com foco em:
+
+- Clareza e leitura de código
+- Separação de responsabilidades via serviços
+- Testabilidade de todas as camadas
+- Facilitação de manutenção e evolução futura
+
+---
+
+## Requisitos
+
+- Ruby 3.3.x
+- Rails 7.x
+- PostgreSQL
+- Sidekiq + sidekiq-scheduler
+- Redis
