@@ -8,8 +8,10 @@
   - active_storage_analysis
   - active_storage_purge
 
-:schedule:
-  mark_cart_as_abandoned_job:
-    cron: "0 * * * *" # runs every hour
-    class: "MarkCartAsAbandonedJob"
-    queue: default
+:scheduler:
+  :schedule:
+    mark_cart_as_abandoned:
+      cron: '* 1 * * *'
+      class: MarkCartAsAbandonedJob
+      queue: default
+      description: "Mark abandoned carts as abandoned"
