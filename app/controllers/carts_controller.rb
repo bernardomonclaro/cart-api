@@ -1,43 +1,60 @@
+# frozen_string_literal: true
+
 class CartsController < ApplicationController
-  def list_products
-    render json: CartSerializer.new(current_cart).as_json
+  before_action :set_cart, only: %i[show add_item destroy]
+
+  # GET /cart
+  def show
+    render json: @cart, serializer: CartSerializer
   end
 
-  def add_product
-    result = AddProductToCartService.call(current_cart, params)
+  # POST /cart
+  def create
+    result = Carts::CreateCartService.call(cart_params, session[:cart_id])
 
     if result.success?
-      render json: CartSerializer.new(result.cart).as_json
+      add_cart_to_session(result.data.id)
+      render json: result.data, serializer: CartSerializer, status: :created
     else
-      render json: { error: result.error }, status: result.status
+      render json: { errors: result.errors }, status: :unprocessable_entity
     end
   end
 
-  def update_quantity
-    result = UpdateCartItemQuantityService.call(current_cart, params)
+  # POST /cart/add_item
+  def add_item
+    return render json: { error: 'Cart not found' }, status: :not_found unless @cart
+
+    result = Carts::AddItemService.call(params, @cart)
 
     if result.success?
-      render json: CartSerializer.new(result.cart).as_json
+      render json: result.data, serializer: CartSerializer
     else
-      render json: { error: result.error }, status: result.status
+      render json: { errors: result.errors }, status: :unprocessable_entity
     end
   end
 
-  def remove_product
-    result = RemoveProductFromCartService.call(current_cart, params)
+  # DELETE /cart
+  def destroy
+    result = Carts::RemoveItemService.call(@cart, params[:product_id])
 
     if result.success?
-      render json: CartSerializer.new(result.cart).as_json
+      render json: result.data, serializer: CartSerializer
     else
-      render json: { error: result.error }, status: result.status
+      render json: { errors: result.errors }, status: :unprocessable_entity
     end
   end
 
   private
 
-  def current_cart
-    session[:cart_id] ||= Cart.create!(last_interaction_at: Time.current).id
-    Cart.find(session[:cart_id])
+  def cart_params
+    params.permit(:product_id, :quantity)
+  end
+
+  def add_cart_to_session(cart_id)
+    session[:cart_id] = cart_id
+  end
+
+  def set_cart
+    @cart = Cart.find_by(id: session[:cart_id])
   end
 end
-
