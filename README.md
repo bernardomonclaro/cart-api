@@ -1,183 +1,123 @@
 # Carrinho de Compras API
 
-Este projeto é uma API de carrinho de compras desenvolvida com **Ruby on Rails**
+API RESTful para simular o funcionamento de um carrinho de compras em um sistema de e-commerce.  
+Permite criar carrinhos, adicionar/remover produtos, visualizar itens e controlar carrinhos inativos de forma automatizada.
 
 ---
 
 ## Funcionalidades
 
+- Criar um carrinho de compras
 - Adicionar produtos ao carrinho
-- Atualizar a quantidade de produtos
-- Remover produtos
-- Listar produtos do carrinho
-- Cálculo de preço total automático
+- Atualizar quantidade de produtos
+- Remover produtos do carrinho
+- Visualizar o conteúdo do carrinho
+- Job automático (Sidekiq) para:
+  - Marcar como *abandonado* carrinhos inativos por 3h
+  - Excluir carrinhos abandonados por mais de 7 dias
 
 ---
 
-## Estrutura do Projeto
+## Tecnologias e Dependências
 
-### Controllers
+- **Ruby** 3.3.1  
+- **Rails** 7.1.3.2  
+- **PostgreSQL** 16  
+- **Redis** 7.0.15  
 
-- `CartsController`: expõe endpoints REST para manipular o carrinho de compras (`list_products`, `add_product`, `update_quantity`, `remove_product`).
-- Toda a lógica de negócio foi delegada para services, mantendo o controller enxuto.
+### Gems Principais
 
-### Models
-
-- `Cart`: representa o carrinho em si.
-- `Product`: representa os produtos disponíveis.
-- `CartItem`: representa a associação entre um produto e um carrinho, com quantidade e preço unitário.
-
-### Services
-
-Organizam regras de negócio de forma coesa:
-
-- `AddProductToCartService`: adiciona ou atualiza um produto no carrinho.
-- `UpdateCartItemQuantityService`: atualiza a quantidade de um item no carrinho.
-- `RemoveProductFromCartService`: remove um produto do carrinho.
-
-### Serializers
-
-- `CartSerializer`: encapsula a resposta JSON do carrinho, formatando produtos e o `total_price`.
-
-## Job de Carrinhos Abandonados (`MarkCartAsAbandonedJob`)
-
-Este job automatiza o gerenciamento de carrinhos abandonados na aplicação.
-
-### O que ele faz?
-
-O `MarkCartAsAbandonedJob` executa duas tarefas principais:
-
-1. **Marca carrinhos como abandonados**  
-   Se um carrinho **não tiver sido atualizado nas últimas 3 horas**, ele será marcado como abandonado (`abandoned_at`).
-
-2. **Remove carrinhos abandonados há mais de 7 dias**  
-   Para evitar acúmulo no banco de dados, carrinhos que já estão marcados como abandonados **há mais de 7 dias** são removidos automaticamente.
-
-### Execução automática com Sidekiq Scheduler
-
-O job é executado automaticamente **de hora em hora**, graças à integração com a gem [`sidekiq-scheduler`](https://github.com/sidekiq-scheduler/sidekiq-scheduler).
-
-**Agendamento configurado em `config/sidekiq.yml`:**
-
-```yaml
-:schedule:
-  mark_cart_as_abandoned_job:
-    cron: "0 * * * *" # roda de hora em hora
-    class: "MarkCartAsAbandonedJob"
-    queue: default
-```
-
-### Configuração do Sidekiq
-
-Em `config/initializers/sidekiq.rb`:
-
-```ruby
-require 'sidekiq/scheduler'
-
-Sidekiq.configure_server do |config|
-  config.on(:startup) do
-    Sidekiq::Scheduler.reload_schedule!
-  end
-end
-```
-
-### Execução manual (opcional)
-
-Você também pode executar o job manualmente pelo console Rails:
-
-```ruby
-MarkCartAsAbandonedJob.perform_now
-```
-
-Ou enfileirar com Sidekiq:
-
-```ruby
-MarkCartAsAbandonedJob.perform_async
-```
-
-## Endpoints
-
-| Verbo HTTP | Rota                 | Ação                                 |
-|------------|----------------------|--------------------------------------|
-| GET        | `/cart/list_products` | Lista produtos no carrinho           |
-| POST       | `/cart/add_product`   | Adiciona produto ao carrinho         |
-| PATCH      | `/cart/update_quantity` | Atualiza a quantidade de um item    |
-| DELETE     | `/cart/remove_product` | Remove um produto do carrinho       |
+| Gem                  | Função                                                                 |
+|----------------------|------------------------------------------------------------------------|
+| `active_model_serializers` | Serialização de objetos para respostas JSON                      |
+| `factory_bot_rails`        | Geração de dados para testes                                     |
+| `shoulda-matchers`         | Matchers para testes de validações e associações                |
+| `byebug`                   | Depuração de código                                              |
+| `rubocop`                  | Análise estática de código para garantir boas práticas          |
 
 ---
 
-## Testes
+## Collection de Testes de API
 
-Foram utilizados `RSpec` e `FactoryBot`.
+O arquivo `cart_api.json` (incluso no projeto) pode ser importado no **Postman** para testar todos os endpoints da aplicação.
 
-### Factories
+---
 
-- `product`, `cart`, `cart_item`: usados para gerar dados consistentes nos testes.
+## Executando com Docker
 
-### Exemplos de testes cobertos
-
-- Comportamento do carrinho em todos os endpoints
-- Validação de serviços isolados
-- Models
-- Routes
-- Job
-
-Para rodar os testes:
+### Build do ambiente:
 
 ```bash
-bundle exec rspec
+docker-compose build
+```
+
+### Subir os containers:
+
+```bash
+docker-compose up
+```
+
+### Rodar Rubocop (lint):
+
+```bash
+docker-compose run web bundle exec rubocop
+```
+
+### Rodar os testes:
+
+```bash
+docker-compose run test
 ```
 
 ---
 
-## Rodando o Projeto Localmente
+## Executando localmente (sem Docker)
 
-1. Instale as dependências:
+> Certifique-se de ter o Ruby, PostgreSQL e Redis instalados.
+
+### Instalar dependências:
 
 ```bash
 bundle install
 ```
 
-2. Configure o banco:
+### Executar o Sidekiq:
 
-```bash
-rails db:create db:migrate db:seed
-```
-
-3. Executar o sidekiq:
 ```bash
 bundle exec sidekiq
 ```
 
-4. Inicie o servidor:
+### Iniciar o servidor:
 
 ```bash
-rails server
+bundle exec rails server
 ```
 
-A aplicação estará disponível em [http://localhost:3000](http://localhost:3000).
+### Rodar os testes:
 
-Criei uma collection no postman para testar os endpoints: 
+```bash
+bundle exec rspec
+```
 
-https://universal-sunset-274257.postman.co/workspace/cart-api~525f421c-53d2-4059-a08d-cb976536373e/collection/19576839-3f579059-c668-4b11-a4e4-18c2943d3478?action=share&creator=19576839
+### Executar análise de código:
+
+```bash
+bundle exec rubocop
+```
+
+## Limpeza automática de carrinhos
+
+Usando **Sidekiq + Sidekiq-Scheduler**, o sistema executa periodicamente:
+
+- A cada 1 hora:
+  - Marca carrinhos como **abandonados** após 3 horas sem interação
+  - Remove carrinhos **abandonados há mais de 7 dias**
+
+Mantém o banco limpo e organizado sem intervenção manual.
 
 ---
 
-## Considerações
+## Autor
 
-Este projeto foi estruturado com foco em:
-
-- Clareza e leitura de código
-- Separação de responsabilidades via serviços
-- Testabilidade de todas as camadas
-- Facilitação de manutenção e evolução futura
-
----
-
-## Requisitos
-
-- Ruby 3.3.x
-- Rails 7.x
-- PostgreSQL
-- Sidekiq + sidekiq-scheduler
-- Redis
+Desenvolvido por **Bernardo Monclaro**  
+📫 [LinkedIn](https://www.linkedin.com/in/bernardomonclaro) • ✉️ bernardomonclaro@gmail.com
