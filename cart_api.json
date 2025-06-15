@@ -1,0 +1,207 @@
+{
+	"info": {
+		"_postman_id": "917f429d-95ff-4de2-a6eb-b43d313f3b3a",
+		"name": "Cart Api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19576839"
+	},
+	"item": [
+		{
+			"name": "Cart",
+			"item": [
+				{
+					"name": "Create",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": []
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"followRedirects": true,
+						"disableUrlEncoding": false,
+						"disableCookies": false
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "User-Agent",
+								"value": "insomnia/10.3.0"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"product_id\": 1,\n\t\"quantity\": 12\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{ _.base_url }}carts/",
+							"host": [
+								"{{ _.base_url }}carts"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Show",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": []
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"followRedirects": true,
+						"disableUrlEncoding": false,
+						"disableCookies": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "User-Agent",
+								"value": "insomnia/10.3.0"
+							}
+						],
+						"url": {
+							"raw": "{{ _.base_url }}cart/",
+							"host": [
+								"{{ _.base_url }}cart"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": []
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"followRedirects": true,
+						"disableUrlEncoding": false,
+						"disableCookies": false
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "User-Agent",
+								"value": "insomnia/10.3.0"
+							}
+						],
+						"url": {
+							"raw": "{{ _.base_url }}cart/:product_id",
+							"host": [
+								"{{ _.base_url }}cart"
+							],
+							"path": [
+								":product_id"
+							],
+							"variable": [
+								{
+									"key": "product_id"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": []
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"followRedirects": true,
+						"disableUrlEncoding": false,
+						"disableCookies": false
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "User-Agent",
+								"value": "insomnia/10.3.0"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"product_id\": 2,\n\t\"quantity\": 12\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{ _.base_url }}cart/add_item",
+							"host": [
+								"{{ _.base_url }}cart"
+							],
+							"path": [
+								"add_item"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "localhost:3000/"
+		},
+		{
+			"value": ""
+		}
+	]
+}
